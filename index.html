@@ -336,7 +336,10 @@
 <body>
     <div class="header">
         <h1>🎓 考试广播系统</h1>
-        <span>v2.0</span>
+        <div style="display:flex; align-items:center; gap:16px">
+            <span id="currentTime" style="font-size:18px; font-family:monospace"></span>
+            <span>v2.0</span>
+        </div>
     </div>
 
     <div class="container">
@@ -345,6 +348,37 @@
             <button class="nav-btn" onclick="showSection('schedule', this)">2. 编辑时间表</button>
             <button class="nav-btn" onclick="showSection('plan', this)">3. 广播计划</button>
             <button class="nav-btn" onclick="showSection('settings', this)">⚙️ 模板设置</button>
+
+            <!-- 年级广播区域设置 -->
+            <div style="margin-top:20px; padding:12px; background:#d0d0d0; border-radius:8px;">
+                <h4 style="margin-bottom:12px; font-size:14px; color:#333;">📍 年级广播区域</h4>
+                <div id="gradeLocationsPanel" style="font-size:12px;">
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; margin-bottom:2px; color:#555;">一年级</label>
+                        <input type="text" id="loc-一年级'" placeholder="如：一楼东" style="width:100%; padding:4px 8px; font-size:12px;" onchange="updateGradeLocation('一年级', this.value)">
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; margin-bottom:2px; color:#555;">二年级</label>
+                        <input type="text" id="loc-二年级'" placeholder="如：一楼西" style="width:100%; padding:4px 8px; font-size:12px;" onchange="updateGradeLocation('二年级', this.value)">
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; margin-bottom:2px; color:#555;">三年级</label>
+                        <input type="text" id="loc-三年级'" placeholder="如：二楼东" style="width:100%; padding:4px 8px; font-size:12px;" onchange="updateGradeLocation('三年级', this.value)">
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; margin-bottom:2px; color:#555;">四年级</label>
+                        <input type="text" id="loc-四年级'" placeholder="如：二楼西" style="width:100%; padding:4px 8px; font-size:12px;" onchange="updateGradeLocation('四年级', this.value)">
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; margin-bottom:2px; color:#555;">五年级</label>
+                        <input type="text" id="loc-五年级'" placeholder="如：三楼东" style="width:100%; padding:4px 8px; font-size:12px;" onchange="updateGradeLocation('五年级', this.value)">
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; margin-bottom:2px; color:#555;">六年级</label>
+                        <input type="text" id="loc-六年级'" placeholder="如：三楼西" style="width:100%; padding:4px 8px; font-size:12px;" onchange="updateGradeLocation('六年级', this.value)">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="content">
@@ -537,6 +571,16 @@
         let hasAutoScrolled = false; // 是否已经自动滚动过（防止每次刷新都滚动）
         let expandedTaskId = null; // 当前展开的任务ID（用于保持展开状态）
 
+        // 年级广播区域设置（1-6年级对应的广播地点/区域）
+        let gradeLocations = {
+            '一年级': '',
+            '二年级': '',
+            '三年级': '',
+            '四年级': '',
+            '五年级': '',
+            '六年级': ''
+        };
+
         // 默认广播模板 - 根据Word文档规范
         const templates = {
             staff_meeting: '现在是{{current_time}}，请各位监考老师请注意，8:30到考务办公室签到、领取试卷，巡视员和楼层巡视员到相应楼层考务办公室。',
@@ -578,6 +622,7 @@
                 exams: exams,
                 plan: plan,
                 templates: customTemplates,
+                gradeLocations: gradeLocations,
                 saveTime: new Date().toISOString()
             };
             localStorage.setItem('examBroadcastData', JSON.stringify(data));
@@ -594,6 +639,9 @@
                     if (data.templates) {
                         customTemplates = data.templates;
                         Object.assign(templates, customTemplates);
+                    }
+                    if (data.gradeLocations) {
+                        gradeLocations = data.gradeLocations;
                     }
                     log('已从本地存储加载数据: ' + exams.length + '场考试, ' + plan.length + '个任务');
                     return true;
@@ -667,12 +715,51 @@
             container.scrollTop = container.scrollHeight;
         }
 
+        // 更新年级地点
+        function updateGradeLocation(grade, location) {
+            gradeLocations[grade] = location;
+            saveToLocalStorage();
+            log(`更新${grade}广播区域: ${location || '未设置'}`);
+        }
+
+        // 加载年级地点到侧边栏
+        function loadGradeLocations() {
+            Object.keys(gradeLocations).forEach(grade => {
+                const input = document.getElementById(`loc-${grade}`);
+                if (input) {
+                    input.value = gradeLocations[grade] || '';
+                }
+            });
+        }
+
+        // 获取年级的广播区域（用于播报内容）
+        function getGradeLocation(grade) {
+            // 支持多种年级格式匹配
+            for (let key in gradeLocations) {
+                if (grade.includes(key) || key.includes(grade)) {
+                    return gradeLocations[key];
+                }
+            }
+            return '';
+        }
+
+        // 更新右上角时间显示
+        function updateCurrentTime() {
+            const timeEl = document.getElementById('currentTime');
+            if (timeEl) {
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+                timeEl.textContent = timeStr;
+            }
+        }
+
         // 导出数据到JSON文件
         function exportData() {
             const data = {
                 exams: exams,
                 plan: plan,
                 templates: customTemplates, // 导出自定义模板
+                gradeLocations: gradeLocations, // 导出年级广播区域
                 exportTime: new Date().toISOString()
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -699,6 +786,11 @@
                     if (data.templates) {
                         customTemplates = data.templates;
                         Object.assign(templates, customTemplates);
+                    }
+                    // 导入年级广播区域
+                    if (data.gradeLocations) {
+                        gradeLocations = data.gradeLocations;
+                        loadGradeLocations(); // 更新侧边栏显示
                     }
                     // 保存到 LocalStorage
                     saveToLocalStorage();
@@ -1392,6 +1484,25 @@
                 byDate[p.date].push(p);
             });
 
+            // 生成年级广播区域信息
+            let gradeLocationHtml = '';
+            const hasLocations = Object.values(gradeLocations).some(loc => loc && loc.trim() !== '');
+            if (hasLocations) {
+                gradeLocationHtml = `
+    <div style="margin-bottom: 30px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;">
+        <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">📍 年级广播区域</h3>
+        <table style="width: auto; margin-bottom: 0;">
+            <tr>
+                ${Object.keys(gradeLocations).map(grade => `<th style="background: #e0e0e0; padding: 8px 15px;">${grade}</th>`).join('')}
+            </tr>
+            <tr>
+                ${Object.values(gradeLocations).map(loc => `<td style="padding: 8px 15px;">${loc || '-'}</td>`).join('')}
+            </tr>
+        </table>
+    </div>
+`;
+            }
+
             // 生成HTML内容
             let html = `
 <!DOCTYPE html>
@@ -1413,6 +1524,7 @@
 </head>
 <body>
     <h1>考试广播计划表</h1>
+    ${gradeLocationHtml}
 `;
 
             Object.keys(byDate).sort().forEach(date => {
@@ -1624,6 +1736,8 @@
                     saveData();
                     log(`自动播报: ${task.exam_display || (task.exam_grade + task.exam_subject)} - ${taskTypeNames[task.type]}`);
                     renderTodayTasks();
+                    // 实时更新广播计划列表状态
+                    renderPlanList(false);
                 }
             });
         }
@@ -1751,6 +1865,10 @@
                 };
             }
 
+            // 启动右上角时间显示（每秒更新）
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+
             // 尝试从 LocalStorage 加载数据
             const hasData = loadFromLocalStorage();
 
@@ -1760,6 +1878,9 @@
                 renderExamList();
                 renderPlanList();
             }
+
+            // 加载年级广播区域设置到侧边栏
+            loadGradeLocations();
 
             // 自动启动运行
             autoStartRun();
