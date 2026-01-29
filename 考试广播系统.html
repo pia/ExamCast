@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考试广播系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #1976D2;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #e0e0e0;
+            padding: 16px;
+        }
+
+        .nav-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: none;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .nav-btn:hover {
+            background: #d0d0d0;
+        }
+
+        .nav-btn.active {
+            background: #1976D2;
+            color: white;
+        }
+
+        .content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        /* 冻结顶部卡片 */
+        .sticky-card {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        /* 冻结头部容器 */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #f5f5f5;
+            padding-bottom: 16px;
+        }
+
+        .sticky-header .card {
+            margin-bottom: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #1976D2;
+            background: #f0f7ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #1976D2;
+            background: #e3f2fd;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary {
+            background: #1976D2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1565C0;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid #ccc;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #1976D2;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .form-row input, .form-row select {
+            flex: 1;
+        }
+
+        .task-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .task-item.current-task {
+            border: 2px solid #1976D2;
+            box-shadow: 0 0 8px rgba(25, 118, 210, 0.3);
+        }
+
+        .task-item.next-task {
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .task-header {
+            padding: 16px;
+            background: #f5f5f5;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .task-header:hover {
+            background: #eeeeee;
+        }
+
+        .task-content {
+            padding: 16px;
+            display: none;
+        }
+
+        .task-content.expanded {
+            display: block;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .status-pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .status-done {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-current {
+            background: #e3f2fd;
+            color: #1565C0;
+        }
+
+        .log-container {
+            background: #263238;
+            color: #aed581;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 16px 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .help-text {
+            color: #666;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎓 考试广播系统</h1>
+        <span>v2.0</span>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <button class="nav-btn active" onclick="showSection('import', this)">1. 导入时间表</button>
+            <button class="nav-btn" onclick="showSection('schedule', this)">2. 编辑时间表</button>
+            <button class="nav-btn" onclick="showSection('plan', this)">3. 广播计划</button>
+            <button class="nav-btn" onclick="showSection('settings', this)">⚙️ 模板设置</button>
+        </div>
+
+        <div class="content">
+            <!-- 导入模块 -->
+            <div id="section-import" class="section active">
+                <div class="card">
+                    <h2>📷 导入考试时间表</h2>
+                    <p class="help-text">支持：上传图片文件 或 粘贴剪贴板图片 (Ctrl+V)</p>
+
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                        <p>点击上传图片 或 直接粘贴 (Ctrl+V)</p>
+                        <input type="file" id="fileInput" accept="image/*" style="display:none">
+                    </div>
+
+                    <div id="imagePreview" class="hidden">
+                        <img id="previewImg" class="preview-image">
+                        <div>
+                            <button class="btn btn-outline" onclick="clearImage()">重新上传</button>
+                            <button class="btn btn-primary" onclick="startRecognition()">开始识别</button>
+                        </div>
+                    </div>
+
+                    <div id="recognitionResult" class="hidden">
+                        <h3 style="margin-top:20px">识别结果（可直接编辑）</h3>
+                        <table id="resultTable">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>年级</th>
+                                    <th>科目</th>
+                                    <th>开始时间</th>
+                                    <th>结束时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <button class="btn btn-outline" onclick="addManualExam()">+ 手动添加</button>
+                        <div style="margin-top:16px; text-align:right">
+                            <button class="btn btn-success" onclick="saveExams()">确认并生成计划</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 时间表模块 -->
+            <div id="section-schedule" class="section">
+                <!-- 冻结的头部 -->
+                <div class="sticky-header">
+                    <div class="card">
+                        <h2>⏰ 考试时间表</h2>
+                        <div style="margin-bottom:0">
+                            <button class="btn btn-primary" onclick="addManualExam()">+ 添加考试</button>
+                            <button class="btn btn-success" onclick="generatePlan()">生成广播计划</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- 可滚动的内容 -->
+                <div id="examList"></div>
+            </div>
+
+            <!-- 计划模块 -->
+            <div id="section-plan" class="section">
+                <!-- 冻结的头部 -->
+                <div class="sticky-header">
+                    <div class="card">
+                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:12px">
+                            <h2 style="margin-bottom:0">📋 广播计划</h2>
+                            <div style="display:flex; align-items:center; gap:12px">
+                                <span id="planRunStatus"><span style="color:#4CAF50; font-weight:bold">🟢 运行中</span></span>
+                                <button class="btn btn-warning" id="btnPlanPause" onclick="pauseAutoRun()" style="padding:6px 12px; font-size:12px; margin:0">⏸️ 暂停</button>
+                                <button class="btn btn-success hidden" id="btnPlanResume" onclick="resumeAutoRun()" style="padding:6px 12px; font-size:12px; margin:0">▶️ 继续</button>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:0">
+                            <button class="btn btn-warning" onclick="addTempBroadcast()">+ 临时广播</button>
+                            <button class="btn btn-outline" onclick="testVoice()">测试语音</button>
+                            <button class="btn btn-success" onclick="saveAll()">保存</button>
+                            <button class="btn btn-primary" onclick="exportPlan()">📄 导出计划</button>
+                            <button class="btn btn-outline" onclick="exportData()">💾 导出数据</button>
+                            <label class="btn btn-outline" style="cursor:pointer; display:inline-block">
+                                📂 导入数据
+                                <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this.files[0])">
+                            </label>
+                            <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清除</button>
+                        </div>
+                    </div>                </div>
+                <!-- 可滚动的内容 -->
+                <div id="planList"></div>
+
+                <!-- 今日任务卡片 -->
+                <div class="card" style="margin-top:16px">
+                    <div style="display:flex; align-items:center; justify-content:space-between">
+                        <h3>📅 今日任务</h3>
+                        <span id="todayDate" class="help-text"></span>
+                    </div>
+                    <div id="todayTasks" style="margin-top:12px"></div>
+                </div>
+
+                <!-- 系统日志卡片 -->
+                <div class="card" style="margin-top:16px">
+                    <h3>📝 系统日志</h3>
+                    <div class="log-container" id="logContainer"></div>
+                </div>
+            </div>
+
+            <!-- 模板设置模块 -->
+            <div id="section-settings" class="section">
+                <div class="card">
+                    <h2>⚙️ 广播模板设置</h2>
+                    <p class="help-text" style="margin-bottom:16px">可用变量：{{current_time}} 当前时间、{{exam_grade}} 年级、{{exam_subject}} 科目、{{start_time}} 开始时间、{{end_time}} 结束时间、{{seal_open_time}} 启封时间、{{paper_issue_time}} 发卷时间</p>
+
+                    <div style="margin-bottom:20px">
+                        <label><strong>考务会</strong></label>
+                        <textarea id="template_staff_meeting" rows="3" style="margin-top:8px"></textarea>
+                    </div>
+
+                    <div style="margin-bottom:20px">
+                        <label><strong>入场</strong></label>
+                        <textarea id="template_entry" rows="3" style="margin-top:8px"></textarea>
+                    </div>
+
+                    <div style="margin-bottom:20px">
+                        <label><strong>启封</strong></label>
+                        <textarea id="template_seal_open" rows="3" style="margin-top:8px"></textarea>
+                    </div>
+
+                    <div style="margin-bottom:20px">
+                        <label><strong>发卷</strong></label>
+                        <textarea id="template_paper_issue" rows="3" style="margin-top:8px"></textarea>
+                    </div>
+
+                    <div style="margin-bottom:20px">
+                        <label><strong>考试开始</strong></label>
+                        <textarea id="template_start" rows="3" style="margin-top:8px"></textarea>
+                    </div>
+
+                    <div style="margin-bottom:20px">
+                        <label><strong>考试结束</strong></label>
+                        <textarea id="template_end" rows="3" style="margin-top:8px"></textarea>
+                    </div>
+
+                    <div style="text-align:right">
+                        <button class="btn btn-outline" onclick="resetTemplates()">恢复默认</button>
+                        <button class="btn btn-success" onclick="saveTemplates()">保存模板</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 临时广播模态框 -->
+    <div class="modal" id="tempModal">
+        <div class="modal-content">
+            <h3>添加临时广播</h3>
+            <div style="margin:16px 0">
+                <label>日期</label>
+                <input type="date" id="tempDate">
+            </div>
+            <div style="margin:16px 0">
+                <label>时间</label>
+                <input type="time" id="tempTime">
+            </div>
+            <div style="margin:16px 0">
+                <label>播报内容</label>
+                <textarea id="tempContent" rows="4"></textarea>
+            </div>
+            <div style="text-align:right">
+                <button class="btn btn-outline" onclick="closeModal()">取消</button>
+                <button class="btn btn-warning" onclick="playTempNow()">立即播报</button>
+                <button class="btn btn-success" onclick="addTempToPlan()">添加到计划</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 配置 ====================
+        const API_KEY = 'sk-Dyp9p6pin0YCxGSslrHf1QN1xWzUjGwlXL2UjbkSZXrq8P9J';
+        const API_URL = 'https://www.dmxapi.cn/v1/chat/completions';
+
+        // ==================== 数据存储 ====================
+        // 数据保存在内存中，通过导出/导入JSON文件持久化
+        let exams = [];
+        let plan = [];
+        let isRunning = false;
+        let checkInterval = null;
+        let todayTasksInterval = null; // 今日任务倒计时更新定时器
+        let currentImage = null;
+        let recognizedExams = [];
+
+        // 默认广播模板 - 根据Word文档规范
+        const templates = {
+            staff_meeting: '现在是{{current_time}}，请各位监考老师请注意，8:30到考务办公室签到、领取试卷，巡视员和楼层巡视员到相应楼层考务办公室。',
+            entry: '现在是{{current_time}}，请{{exam_grade}}{{exam_subject}}监考老师组织学生入场，核对考试科目。考试将于{{start_time}}正式开始，启封时间为{{seal_open_time}}，发卷时间为{{paper_issue_time}}，正式开考时间为{{start_time}}。',
+            seal_open: '现在是{{current_time}}，请监考老师启封试卷袋，核对{{exam_subject}}试卷科目是否正确，如有问题请联系巡视员。发卷时间为{{paper_issue_time}}。',
+            paper_issue: '现在是{{current_time}}，请监考老师发放答题卡，组织学生填写班级、姓名、学号。5分钟后开始答题。',
+            start: '监考老师请注意，现在是{{start_time}}，{{exam_grade}}{{exam_subject}}考试正式开始，请监考老师组织学生开始答题。考试无关人员远离考场，巡视员做好相关工作。',
+            end: '监考老师、同学们请注意，现在是{{current_time}}，{{exam_grade}}{{exam_subject}}考试结束，请考生停止答题。请监考老师按顺序收取试卷、答题卡，清点无误后送交考务办公室。请同学们注意休息，准备下场考试。',
+            temp: ''
+        };
+
+        const taskTypeNames = {
+            staff_meeting: '考务会',
+            entry: '入场',
+            seal_open: '启封',
+            paper_issue: '发卷',
+            start: '考试开始',
+            end: '考试结束',
+            temp: '临时广播'
+        };
+
+        // 默认模板（用于恢复默认）- 根据Word文档规范
+        const defaultTemplates = {
+            staff_meeting: '现在是{{current_time}}，请各位监考老师请注意，8:30到考务办公室签到、领取试卷，巡视员和楼层巡视员到相应楼层考务办公室。',
+            entry: '现在是{{current_time}}，请{{exam_grade}}{{exam_subject}}监考老师组织学生入场，核对考试科目。考试将于{{start_time}}正式开始，启封时间为{{seal_open_time}}，发卷时间为{{paper_issue_time}}，正式开考时间为{{start_time}}。',
+            seal_open: '现在是{{current_time}}，请监考老师启封试卷袋，核对{{exam_subject}}试卷科目是否正确，如有问题请联系巡视员。发卷时间为{{paper_issue_time}}。',
+            paper_issue: '现在是{{current_time}}，请监考老师发放答题卡，组织学生填写班级、姓名、学号。5分钟后开始答题。',
+            start: '监考老师请注意，现在是{{start_time}}，{{exam_grade}}{{exam_subject}}考试正式开始，请监考老师组织学生开始答题。考试无关人员远离考场，巡视员做好相关工作。',
+            end: '监考老师、同学们请注意，现在是{{current_time}}，{{exam_grade}}{{exam_subject}}考试结束，请考生停止答题。请监考老师按顺序收取试卷、答题卡，清点无误后送交考务办公室。请同学们注意休息，准备下场考试。'
+        };
+
+        // 当前使用的模板（可以被修改）
+        let customTemplates = null;
+
+        // ==================== LocalStorage 数据持久化 ====================
+        // 保存数据到 LocalStorage
+        function saveToLocalStorage() {
+            const data = {
+                exams: exams,
+                plan: plan,
+                templates: customTemplates,
+                saveTime: new Date().toISOString()
+            };
+            localStorage.setItem('examBroadcastData', JSON.stringify(data));
+        }
+
+        // 从 LocalStorage 加载数据
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('examBroadcastData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    if (data.exams) exams = data.exams;
+                    if (data.plan) plan = data.plan;
+                    if (data.templates) {
+                        customTemplates = data.templates;
+                        Object.assign(templates, customTemplates);
+                    }
+                    log('已从本地存储加载数据: ' + exams.length + '场考试, ' + plan.length + '个任务');
+                    return true;
+                }
+            } catch (e) {
+                console.error('加载本地数据失败:', e);
+            }
+            return false;
+        }
+
+        // 清除本地数据
+        function clearLocalStorage() {
+            localStorage.removeItem('examBroadcastData');
+        }
+
+        // 加载模板到设置页面
+        function loadTemplates() {
+            const currentTemplates = customTemplates || templates;
+            document.getElementById('template_staff_meeting').value = currentTemplates.staff_meeting;
+            document.getElementById('template_entry').value = currentTemplates.entry;
+            document.getElementById('template_seal_open').value = currentTemplates.seal_open;
+            document.getElementById('template_paper_issue').value = currentTemplates.paper_issue;
+            document.getElementById('template_start').value = currentTemplates.start;
+            document.getElementById('template_end').value = currentTemplates.end;
+        }
+
+        // 保存模板
+        function saveTemplates() {
+            customTemplates = {
+                staff_meeting: document.getElementById('template_staff_meeting').value,
+                entry: document.getElementById('template_entry').value,
+                seal_open: document.getElementById('template_seal_open').value,
+                paper_issue: document.getElementById('template_paper_issue').value,
+                start: document.getElementById('template_start').value,
+                end: document.getElementById('template_end').value
+            };
+
+            // 更新全局 templates 对象
+            Object.assign(templates, customTemplates);
+
+            // 如果有考试计划，询问是否重新生成
+            if (exams.length > 0) {
+                if (confirm('模板已保存。是否使用新模板重新生成广播计划？')) {
+                    generatePlan();
+                }
+            } else {
+                alert('模板已保存！');
+            }
+
+            log('广播模板已保存');
+
+            // 保存到 LocalStorage
+            saveToLocalStorage();
+        }
+
+        // 恢复默认模板
+        function resetTemplates() {
+            if (confirm('确定要恢复默认模板吗？所有自定义修改将丢失。')) {
+                customTemplates = null;
+                Object.assign(templates, defaultTemplates);
+                loadTemplates();
+                log('已恢复默认模板');
+            }
+        }
+
+        // ==================== 工具函数 ====================
+        function log(msg) {
+            const container = document.getElementById('logContainer');
+            const time = new Date().toLocaleTimeString();
+            container.innerHTML += `[${time}] ${msg}<br>`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 导出数据到JSON文件
+        function exportData() {
+            const data = {
+                exams: exams,
+                plan: plan,
+                templates: customTemplates, // 导出自定义模板
+                exportTime: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '考试广播数据_' + new Date().toISOString().slice(0,10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            log('数据已导出');
+        }
+
+        // 从JSON文件导入数据
+        function importData(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.exams) exams = data.exams;
+                    if (data.plan) plan = data.plan;
+                    // 导入模板设置
+                    if (data.templates) {
+                        customTemplates = data.templates;
+                        Object.assign(templates, customTemplates);
+                    }
+                    // 保存到 LocalStorage
+                    saveToLocalStorage();
+                    renderExamList();
+                    renderPlanList();
+                    log('数据已导入: ' + (exams.length || 0) + '场考试, ' + (plan.length || 0) + '个广播任务');
+                    alert('数据导入成功！');
+                } catch (err) {
+                    alert('导入失败: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 清除所有数据
+        function clearAllData() {
+            if (confirm('确定要清除所有数据吗？\n\n这将删除：\n- 所有考试信息\n- 所有广播计划\n- 自定义模板\n\n此操作不可恢复！')) {
+                exams = [];
+                plan = [];
+                customTemplates = null;
+                Object.assign(templates, defaultTemplates);
+                clearLocalStorage();
+                renderExamList();
+                renderPlanList();
+                log('所有数据已清除');
+                alert('所有数据已清除');
+            }
+        }
+
+        // 保存数据（到 LocalStorage）
+        function saveData() {
+            saveToLocalStorage();
+        }
+
+        function timeSubtract(timeStr, minutes) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const date = new Date(2000, 0, 1, h, m - minutes);
+            return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        }
+
+        function showSection(name, clickedBtn = null) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('section-' + name).classList.add('active');
+
+            // 如果没有传入按钮，找到对应的导航按钮
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            } else {
+                const navBtns = document.querySelectorAll('.nav-btn');
+                const index = ['import', 'schedule', 'plan', 'settings'].indexOf(name);
+                if (index >= 0 && navBtns[index]) {
+                    navBtns[index].classList.add('active');
+                }
+            }
+
+            // 保存当前tab到localStorage
+            localStorage.setItem('examBroadcastCurrentTab', name);
+
+            if (name === 'schedule') renderExamList();
+            if (name === 'plan') {
+                renderPlanList();
+                renderTodayTasks();
+                // 启动倒计时自动更新（每秒更新一次）
+                if (todayTasksInterval) clearInterval(todayTasksInterval);
+                todayTasksInterval = setInterval(() => {
+                    renderTodayTasks();
+                    renderPlanList();
+                }, 1000);
+            } else {
+                // 离开广播计划页面时停止倒计时更新
+                if (todayTasksInterval) {
+                    clearInterval(todayTasksInterval);
+                    todayTasksInterval = null;
+                }
+            }
+            if (name === 'settings') loadTemplates();
+        }
+
+        // ==================== 图片处理 ====================
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handleImage(e.target.files[0]);
+            }
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files[0]) {
+                handleImage(e.dataTransfer.files[0]);
+            }
+        });
+
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    handleImage(item.getAsFile());
+                    break;
+                }
+            }
+        });
+
+        function handleImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImage = e.target.result;
+                document.getElementById('previewImg').src = currentImage;
+                document.getElementById('imagePreview').classList.remove('hidden');
+                document.getElementById('uploadArea').classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            currentImage = null;
+            document.getElementById('imagePreview').classList.add('hidden');
+            document.getElementById('uploadArea').classList.remove('hidden');
+            document.getElementById('recognitionResult').classList.add('hidden');
+            document.getElementById('fileInput').value = '';
+        }
+
+        // ==================== AI识别 ====================
+        async function startRecognition() {
+            if (!currentImage) {
+                alert('请先上传图片');
+                return;
+            }
+
+            const btn = event.target;
+            btn.textContent = '识别中...';
+            btn.disabled = true;
+
+            try {
+                const base64Image = currentImage.split(',')[1];
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'GLM-4.1V-Thinking-Flash',
+                        messages: [{
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: '请识别这张考试时间表图片，提取所有考试信息（日期、年级、科目、开始时间、结束时间），按JSON格式返回：{"exams":[{"date":"YYYY-MM-DD","grade":"年级","subject":"科目","start_time":"HH:MM","end_time":"HH:MM"}]}' },
+                                { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+                            ]
+                        }],
+                        stream: false,
+                        temperature: 0.3
+                    })
+                });
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                // 解析JSON
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const result = JSON.parse(jsonMatch[0]);
+                    recognizedExams = result.exams || [];
+
+                    // 修复日期格式（统一转换为YYYY-MM-DD）
+                    const currentYear = new Date().getFullYear();
+                    recognizedExams.forEach(exam => {
+                        if (exam.date) {
+                            // 处理各种分隔符（/、\、.等）
+                            exam.date = exam.date.replace(/[\\\/\.]/g, '-');
+                            // 确保是标准格式
+                            const parts = exam.date.split('-');
+                            if (parts.length === 3) {
+                                let year = parts[0];
+                                let month = parts[1];
+                                let day = parts[2];
+
+                                // 如果年份是两位数，补全为四位数
+                                if (year.length <= 2) {
+                                    year = year.padStart(4, '20');
+                                }
+
+                                // 如果年份早于当前年份（图片可能是旧的，但考试是今年），使用当前年份
+                                // 或者年份明显不合理（小于2000或大于2099），也使用当年
+                                const yearNum = parseInt(year);
+                                if (yearNum < currentYear || yearNum < 2000 || yearNum > 2099) {
+                                    year = String(currentYear);
+                                }
+
+                                month = month.padStart(2, '0');
+                                day = day.padStart(2, '0');
+                                exam.date = `${year}-${month}-${day}`;
+                            } else if (parts.length === 2) {
+                                // 只有月-日，没有年份，使用当年
+                                const month = parts[0].padStart(2, '0');
+                                const day = parts[1].padStart(2, '0');
+                                exam.date = `${currentYear}-${month}-${day}`;
+                            }
+                        }
+                        // 修复年级和科目中的乱码（如果API返回编码有问题）
+                        if (exam.grade) exam.grade = exam.grade.trim();
+                        if (exam.subject) exam.subject = exam.subject.trim();
+                    });
+
+                    showRecognitionResult();
+                    log('图片识别完成，共识别 ' + recognizedExams.length + ' 场考试');
+                }
+            } catch (error) {
+                alert('识别失败: ' + error.message);
+                log('识别失败: ' + error.message);
+            } finally {
+                btn.textContent = '开始识别';
+                btn.disabled = false;
+            }
+        }
+
+        function showRecognitionResult() {
+            const tbody = document.querySelector('#resultTable tbody');
+            tbody.innerHTML = '';
+
+            recognizedExams.forEach((exam, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="date" value="${exam.date || ''}" onchange="recognizedExams[${index}].date=this.value"></td>
+                    <td><input type="text" value="${exam.grade || ''}" onchange="recognizedExams[${index}].grade=this.value"></td>
+                    <td><input type="text" value="${exam.subject || ''}" onchange="recognizedExams[${index}].subject=this.value"></td>
+                    <td><input type="time" value="${exam.start_time || ''}" onchange="recognizedExams[${index}].start_time=this.value"></td>
+                    <td><input type="time" value="${exam.end_time || ''}" onchange="recognizedExams[${index}].end_time=this.value"></td>
+                    <td><button class="btn btn-danger" onclick="recognizedExams.splice(${index},1);showRecognitionResult()">删除</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('recognitionResult').classList.remove('hidden');
+        }
+
+        function saveExams() {
+            exams = [...recognizedExams];
+            saveData();
+            generatePlan();
+            showSection('schedule');
+            log('考试时间表已保存');
+        }
+
+        // ==================== 时间表管理 ====================
+        function renderExamList() {
+            const container = document.getElementById('examList');
+            if (exams.length === 0) {
+                container.innerHTML = '<p style="color:#999">暂无考试数据</p>';
+                return;
+            }
+
+            // 按日期分组
+            const byDate = {};
+            exams.forEach(e => {
+                if (!byDate[e.date]) byDate[e.date] = [];
+                byDate[e.date].push(e);
+            });
+
+            let html = '';
+            Object.keys(byDate).sort().forEach(date => {
+                html += `<h4 style="margin:16px 0 8px">📅 ${date}</h4>`;
+                html += '<table><thead><tr><th>年级</th><th>科目</th><th>时间</th><th>操作</th></tr></thead><tbody>';
+                byDate[date].forEach((exam, idx) => {
+                    const globalIdx = exams.indexOf(exam);
+                    html += `<tr>
+                        <td>${exam.grade}</td>
+                        <td>${exam.subject}</td>
+                        <td>${exam.start_time} - ${exam.end_time}</td>
+                        <td><button class="btn btn-danger" onclick="deleteExam(${globalIdx})">删除</button></td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+            });
+            container.innerHTML = html;
+        }
+
+        function addManualExam() {
+            const date = prompt('日期 (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!date) return;
+            const grade = prompt('年级:');
+            if (!grade) return;
+            const subject = prompt('科目:');
+            if (!subject) return;
+            const start = prompt('开始时间 (HH:MM):', '09:00');
+            if (!start) return;
+            const end = prompt('结束时间 (HH:MM):', '10:00');
+            if (!end) return;
+
+            exams.push({ date, grade, subject, start_time: start, end_time: end });
+            saveData();
+            renderExamList();
+            log('手动添加考试: ' + grade + subject);
+        }
+
+        function deleteExam(index) {
+            if (confirm('确定删除这场考试吗？')) {
+                exams.splice(index, 1);
+                saveData();
+                renderExamList();
+            }
+        }
+
+        // ==================== 广播计划生成 ====================
+        function generatePlan() {
+            plan = [];
+
+            // 按日期分组
+            const byDate = {};
+            exams.forEach(e => {
+                if (!byDate[e.date]) byDate[e.date] = [];
+                byDate[e.date].push(e);
+            });
+
+            Object.keys(byDate).forEach(date => {
+                const dayExams = byDate[date].sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+                // 1. 添加考务会（每天早上8:15，每个日期只加一次）
+                plan.push(createTask(date, dayExams[0], 'staff_meeting', '08:15'));
+
+                // 2. 收集同一天同一时间的任务，合并播报
+                const timeTasks = {}; // key: "HH:MM", value: [{exam, type}]
+
+                dayExams.forEach(exam => {
+                    // 入场
+                    const entryTime = timeSubtract(exam.start_time, 15);
+                    if (!timeTasks[entryTime]) timeTasks[entryTime] = [];
+                    timeTasks[entryTime].push({ exam, type: 'entry' });
+
+                    // 启封
+                    const sealTime = timeSubtract(exam.start_time, 10);
+                    if (!timeTasks[sealTime]) timeTasks[sealTime] = [];
+                    timeTasks[sealTime].push({ exam, type: 'seal_open' });
+
+                    // 发卷
+                    const paperTime = timeSubtract(exam.start_time, 5);
+                    if (!timeTasks[paperTime]) timeTasks[paperTime] = [];
+                    timeTasks[paperTime].push({ exam, type: 'paper_issue' });
+
+                    // 考试开始
+                    if (!timeTasks[exam.start_time]) timeTasks[exam.start_time] = [];
+                    timeTasks[exam.start_time].push({ exam, type: 'start' });
+
+                    // 考试结束
+                    if (!timeTasks[exam.end_time]) timeTasks[exam.end_time] = [];
+                    timeTasks[exam.end_time].push({ exam, type: 'end' });
+                });
+
+                // 3. 按时间顺序处理任务，合并同一时间点的
+                Object.keys(timeTasks).sort().forEach(time => {
+                    const tasks = timeTasks[time];
+                    // 按类型分组
+                    const byType = {};
+                    tasks.forEach(t => {
+                        if (!byType[t.type]) byType[t.type] = [];
+                        byType[t.type].push(t.exam);
+                    });
+
+                    // 为每种类型创建任务（如果同一时间有多个考试，合并播报内容）
+                    Object.keys(byType).forEach(type => {
+                        const examsList = byType[type];
+                        plan.push(createMergedTask(date, examsList, type, time));
+                    });
+                });
+            });
+
+            // 按日期时间排序
+            plan.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+
+            saveData();
+            renderPlanList();
+            log('广播计划已生成，共 ' + plan.length + ' 个任务');
+            alert('广播计划已生成！共 ' + plan.length + ' 个任务');
+        }
+
+        function createTask(date, exam, type, time) {
+            return createMergedTask(date, [exam], type, time);
+        }
+
+        function createMergedTask(date, examsList, type, time) {
+            const sealOpen = timeSubtract(examsList[0].start_time, 10);
+            const paperIssue = timeSubtract(examsList[0].start_time, 5);
+
+            // 生成合并的播报内容
+            let content = '';
+            if (examsList.length === 1) {
+                // 单个考试
+                const exam = examsList[0];
+                content = templates[type]
+                    .replace(/\{\{current_time\}\}/g, time)
+                    .replace(/\{\{exam_subject\}\}/g, exam.subject)
+                    .replace(/\{\{exam_grade\}\}/g, exam.grade)
+                    .replace(/\{\{start_time\}\}/g, exam.start_time)
+                    .replace(/\{\{end_time\}\}/g, exam.end_time)
+                    .replace(/\{\{seal_open_time\}\}/g, sealOpen)
+                    .replace(/\{\{paper_issue_time\}\}/g, paperIssue);
+            } else {
+                // 多个考试合并播报
+                const examDesc = examsList.map(e => e.grade + e.subject).join('、');
+                content = templates[type]
+                    .replace(/\{\{current_time\}\}/g, time)
+                    .replace(/\{\{exam_subject\}\}/g, examsList.map(e => e.subject).join('、'))
+                    .replace(/\{\{exam_grade\}\}/g, examsList.map(e => e.grade).join('、'))
+                    .replace(/\{\{start_time\}\}/g, examsList[0].start_time)
+                    .replace(/\{\{end_time\}\}/g, examsList[0].end_time)
+                    .replace(/\{\{seal_open_time\}\}/g, sealOpen)
+                    .replace(/\{\{paper_issue_time\}\}/g, paperIssue);
+                // 添加说明是多个考试
+                if (type === 'entry') {
+                    content = `现在是${time}，请${examDesc}监考老师组织学生入场。考试将于${examsList[0].start_time}正式开始。`;
+                } else if (type === 'seal_open') {
+                    content = `现在是${time}，请监考老师启封试卷袋，核对试卷科目是否正确。今日考试：${examDesc}。`;
+                } else if (type === 'paper_issue') {
+                    content = `现在是${time}，请监考老师发放答题卡，组织学生填写班级、姓名、学号。`;
+                } else if (type === 'start') {
+                    content = `${time}，${examDesc}考试正式开始，请考生开始答题。`;
+                } else if (type === 'end') {
+                    content = `${time}，${examDesc}考试结束，请考生停止答题。`;
+                }
+            }
+
+            // 生成显示的考试名称（避免年级重复）
+            // 如果所有考试都是同一年级，显示为：高一（数学、英语）
+            // 如果年级不同，显示为：高一数学、高二物理
+            const grades = examsList.map(e => e.grade);
+            const uniqueGrades = [...new Set(grades)];
+            let examDisplay;
+            if (uniqueGrades.length === 1) {
+                // 同一年级
+                examDisplay = uniqueGrades[0] + '（' + examsList.map(e => e.subject).join('、') + '）';
+            } else {
+                // 不同年级
+                examDisplay = examsList.map(e => e.grade + e.subject).join('、');
+            }
+
+            return {
+                id: Date.now() + Math.random(),
+                date,
+                time,
+                type,
+                exam_grade: uniqueGrades.join('、'),
+                exam_subject: examsList.map(e => e.subject).join('、'),
+                exam_display: examDisplay, // 用于显示的名称
+                content,
+                done: false,
+                _exams: examsList // 内部保存原始考试列表
+            };
+        }
+
+        function renderPlanList() {
+            const container = document.getElementById('planList');
+            if (plan.length === 0) {
+                container.innerHTML = '<p style="color:#999">暂无广播计划，请先生成</p>';
+                return;
+            }
+
+            // 按日期分组
+            const byDate = {};
+            plan.forEach(p => {
+                if (!byDate[p.date]) byDate[p.date] = [];
+                byDate[p.date].push(p);
+            });
+
+            const now = new Date();
+            const today = getLocalDateString();
+            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+            const nowSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+            // 找到下一个待执行的任务（用于自动滚动）
+            let nextTaskId = null;
+            let foundNext = false;
+
+            let html = '';
+            Object.keys(byDate).sort().forEach(date => {
+                html += `<h4 style="margin:16px 0 8px">📅 ${date}</h4>`;
+                byDate[date].sort((a, b) => a.time.localeCompare(b.time)).forEach(task => {
+                    const [h, m] = task.time.split(':').map(Number);
+                    const taskMinutes = h * 60 + m;
+                    const taskSeconds = h * 3600 + m * 60;
+
+                    // 判断任务状态
+                    let isExpired = task.done || (date < today) || (date === today && taskMinutes < nowMinutes);
+                    let isCurrent = date === today && !task.done && taskMinutes === nowMinutes;
+                    let isFuture = !isExpired && !isCurrent;
+
+                    // 找到下一个待执行的任务
+                    if (!foundNext && isFuture) {
+                        nextTaskId = task.id;
+                        foundNext = true;
+                    }
+
+                    // 计算倒计时（仅今天未过期的任务）
+                    let countdownText = '';
+                    if (date === today && !task.done && taskSeconds > nowSeconds) {
+                        const diffSeconds = taskSeconds - nowSeconds;
+                        const remainHour = Math.floor(diffSeconds / 3600);
+                        const remainMin = Math.floor((diffSeconds % 3600) / 60);
+                        const remainSec = diffSeconds % 60;
+
+                        if (diffSeconds < 3600) {
+                            if (remainMin > 0) {
+                                countdownText = `还有${remainMin}分${remainSec}秒`;
+                            } else {
+                                countdownText = `还有${remainSec}秒`;
+                            }
+                        } else {
+                            countdownText = `还有${remainHour}小时${remainMin}分`;
+                        }
+                    }
+
+                    // 样式类
+                    let itemStyle = '';
+                    let headerStyle = '';
+                    let taskClass = 'task-item';
+
+                    if (isExpired) {
+                        // 已过期 - 灰色
+                        itemStyle = 'opacity:0.5; background:#f5f5f5;';
+                        headerStyle = 'background:#e0e0e0;';
+                    } else if (isCurrent) {
+                        // 当前执行中 - 高亮蓝色
+                        taskClass = 'task-item current-task';
+                        headerStyle = 'background:#e3f2fd;';
+                    } else if (task.id === nextTaskId) {
+                        // 下一个待执行 - 高亮绿色
+                        taskClass = 'task-item next-task';
+                        headerStyle = 'background:#e8f5e9;';
+                    }
+
+                    const statusClass = task.done ? 'status-done' : 'status-pending';
+                    const statusText = task.done ? '已执行' : (isExpired ? '已过期' : '待执行');
+
+                    // 任务项ID用于自动滚动
+                    const taskIdAttr = task.id === nextTaskId ? `id="nextTask"` : '';
+
+                    html += `<div class="${taskClass}" ${taskIdAttr} style="${itemStyle}">
+                        <div class="task-header" onclick="toggleTask(this)" style="${headerStyle}">
+                            <span>
+                                <strong>${task.time}</strong> - ${taskTypeNames[task.type]} - ${task.exam_display || (task.exam_grade + task.exam_subject)}
+                                ${countdownText ? `<span style="color:#1976D2; margin-left:8px; font-size:12px;">⏱️ ${countdownText}</span>` : ''}
+                            </span>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <button class="btn btn-success" style="padding:4px 12px;font-size:12px;margin:0" onclick="event.stopPropagation();playTaskDirect(${task.id})" title="立即播报">▶ 播放</button>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </div>
+                        </div>
+                        <div class="task-content">
+                            <label>播报内容:</label>
+                            <textarea id="task-${task.id}" rows="4">${task.content}</textarea>
+                            <div style="margin-top:12px">
+                                <button class="btn btn-success" onclick="playTask(${task.id})">▶ 立即播报</button>
+                                ${task.type !== 'temp' ? `<button class="btn btn-outline" onclick="resetTask(${task.id})">恢复默认</button>` : ''}
+                                <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            });
+            container.innerHTML = html;
+
+            // 自动滚动到下一个任务
+            if (nextTaskId) {
+                setTimeout(() => {
+                    const nextTaskEl = document.getElementById('nextTask');
+                    if (nextTaskEl) {
+                        nextTaskEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            }
+        }
+
+        function toggleTask(header) {
+            header.nextElementSibling.classList.toggle('expanded');
+        }
+
+        function playTask(id) {
+            const task = plan.find(p => p.id === id);
+            if (task) {
+                const content = document.getElementById(`task-${id}`).value;
+                speak(content);
+                log('立即播报: ' + (task.exam_display || (task.exam_grade + task.exam_subject)) + ' - ' + taskTypeNames[task.type]);
+            }
+        }
+
+        // 直接从任务数据播放（不依赖textarea）
+        function playTaskDirect(id) {
+            const task = plan.find(p => p.id === id);
+            if (task) {
+                speak(task.content);
+                log('立即播报: ' + (task.exam_display || (task.exam_grade + task.exam_subject)) + ' - ' + taskTypeNames[task.type]);
+            }
+        }
+
+        function resetTask(id) {
+            const task = plan.find(p => p.id === id);
+            if (task && confirm('确定恢复默认模板吗？')) {
+                // 使用原始考试数据重新生成
+                const examsList = task._exams || [{ grade: task.exam_grade, subject: task.exam_subject, start_time: task.time, end_time: task.time }];
+                const fresh = createMergedTask(task.date, examsList, task.type, task.time);
+                task.content = fresh.content;
+                task.exam_grade = fresh.exam_grade;
+                task.exam_subject = fresh.exam_subject;
+                task.exam_display = fresh.exam_display;
+                document.getElementById(`task-${id}`).value = task.content;
+                saveData();
+                renderPlanList();
+            }
+        }
+
+        function deleteTask(id) {
+            if (confirm('确定删除这个广播任务吗？')) {
+                plan = plan.filter(p => p.id !== id);
+                saveData();
+                renderPlanList();
+            }
+        }
+
+        function saveAll() {
+            // 保存所有编辑过的内容
+            plan.forEach(task => {
+                const textarea = document.getElementById(`task-${task.id}`);
+                if (textarea) {
+                    task.content = textarea.value;
+                }
+            });
+            saveData();
+            alert('已保存所有修改');
+            log('保存所有修改');
+        }
+
+        // 导出广播计划为Word文档（HTML格式）
+        function exportPlan() {
+            if (plan.length === 0) {
+                alert('暂无广播计划，请先生成');
+                return;
+            }
+
+            // 按日期分组
+            const byDate = {};
+            plan.forEach(p => {
+                if (!byDate[p.date]) byDate[p.date] = [];
+                byDate[p.date].push(p);
+            });
+
+            // 生成HTML内容
+            let html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>广播计划</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', SimSun, sans-serif; margin: 40px; }
+        h1 { text-align: center; font-size: 24px; margin-bottom: 30px; }
+        h2 { font-size: 18px; margin-top: 30px; margin-bottom: 15px; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #333; padding: 10px; text-align: left; font-size: 14px; }
+        th { background-color: #f0f0f0; font-weight: bold; }
+        .time { width: 80px; }
+        .type { width: 100px; }
+        .exam { width: 150px; }
+    </style>
+</head>
+<body>
+    <h1>考试广播计划表</h1>
+`;
+
+            Object.keys(byDate).sort().forEach(date => {
+                html += `    <h2>📅 ${date}</h2>\n    <table>\n`;
+                html += `        <tr><th class="time">时间</th><th class="type">类型</th><th class="exam">考试</th><th>播报内容</th></tr>\n`;
+
+                byDate[date].sort((a, b) => a.time.localeCompare(b.time)).forEach(task => {
+                    const typeName = taskTypeNames[task.type] || task.type;
+                    const examInfo = task.exam_display || (task.exam_grade + task.exam_subject);
+                    html += `        <tr><td>${task.time}</td><td>${typeName}</td><td>${examInfo}</td><td>${task.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>\n`;
+                });
+
+                html += `    </table>\n`;
+            });
+
+            html += `</body>\n</html>`;
+
+            // 创建Blob并下载
+            const blob = new Blob([html], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '广播计划_' + new Date().toISOString().slice(0,10) + '.doc';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            log('广播计划已导出');
+        }
+
+        // ==================== 语音播报 ====================
+        // 获取中文男声
+        function getChineseMaleVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            // 尝试找到中文男声
+            const maleVoice = voices.find(v =>
+                v.lang.includes('zh') &&
+                (v.name.includes('男') ||
+                 v.name.includes('Male') ||
+                 v.name.includes('Kangkang') ||
+                 v.name.includes('Yaoyao') === false)
+            );
+            return maleVoice || voices.find(v => v.lang.includes('zh')) || null;
+        }
+
+        function speak(text) {
+            if (!window.speechSynthesis) {
+                alert('您的浏览器不支持语音播报');
+                return;
+            }
+
+            // 替换变量
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            const finalText = text.replace(/\{\{current_time\}\}/g, timeStr);
+
+            // 停止当前播报
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(finalText);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.9;
+            utterance.pitch = 0.8; // 降低音调，更接近男声
+
+            // 尝试设置男声
+            const maleVoice = getChineseMaleVoice();
+            if (maleVoice) {
+                utterance.voice = maleVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function testVoice() {
+            speak('语音测试，考试广播系统就绪。');
+            log('语音测试');
+        }
+
+        // ==================== 临时广播 ====================
+        function addTempBroadcast() {
+            document.getElementById('tempModal').classList.add('show');
+            document.getElementById('tempDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('tempTime').value = new Date().toTimeString().slice(0,5);
+        }
+
+        function closeModal() {
+            document.getElementById('tempModal').classList.remove('show');
+        }
+
+        function playTempNow() {
+            const content = document.getElementById('tempContent').value;
+            if (content) {
+                speak(content);
+                closeModal();
+            }
+        }
+
+        function addTempToPlan() {
+            const date = document.getElementById('tempDate').value;
+            const time = document.getElementById('tempTime').value;
+            const content = document.getElementById('tempContent').value;
+
+            if (!date || !time || !content) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            plan.push({
+                id: Date.now(),
+                date,
+                time,
+                type: 'temp',
+                exam_grade: '',
+                exam_subject: '临时',
+                content,
+                done: false
+            });
+
+            plan.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+            saveData();
+            renderPlanList();
+            closeModal();
+            log('添加临时广播: ' + date + ' ' + time);
+        }
+
+        // ==================== 运行控制 ====================
+        // 自动启动运行
+        function autoStartRun() {
+            isRunning = true;
+            if (!checkInterval) {
+                checkInterval = setInterval(checkTasks, 1000);
+            }
+            updatePlanRunUI();
+            log('系统已自动启动运行');
+        }
+
+        // 暂停自动运行（用于广播计划页面）
+        function pauseAutoRun() {
+            isRunning = false;
+            updatePlanRunUI();
+            log('系统已暂停');
+        }
+
+        // 恢复自动运行（用于广播计划页面）
+        function resumeAutoRun() {
+            isRunning = true;
+            if (!checkInterval) {
+                checkInterval = setInterval(checkTasks, 1000);
+            }
+            updatePlanRunUI();
+            log('系统已恢复');
+        }
+
+        // 更新广播计划页面的运行状态UI
+        function updatePlanRunUI() {
+            const statusEl = document.getElementById('planRunStatus');
+            const pauseBtn = document.getElementById('btnPlanPause');
+            const resumeBtn = document.getElementById('btnPlanResume');
+
+            if (statusEl) {
+                statusEl.innerHTML = isRunning
+                    ? '<span style="color:#4CAF50; font-weight:bold">🟢 运行中</span>'
+                    : '<span style="color:#FF9800; font-weight:bold">🟡 已暂停</span>';
+            }
+            if (pauseBtn) pauseBtn.classList.toggle('hidden', !isRunning);
+            if (resumeBtn) resumeBtn.classList.toggle('hidden', isRunning);
+        }
+
+        // 兼容旧代码的函数（保留但简化）
+        function startRun() {
+            autoStartRun();
+        }
+
+        function pauseRun() {
+            pauseAutoRun();
+        }
+
+        function resumeRun() {
+            resumeAutoRun();
+        }
+
+        function stopRun() {
+            isRunning = false;
+            if (checkInterval) {
+                clearInterval(checkInterval);
+                checkInterval = null;
+            }
+            updatePlanRunUI();
+            log('系统已停止');
+        }
+
+        function updateRunUI() {
+            // 兼容旧代码，实际使用 updatePlanRunUI
+            updatePlanRunUI();
+        }
+
+        function checkTasks() {
+            if (!isRunning) return;
+
+            const now = new Date();
+            const dateStr = getLocalDateString(now);
+            const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`;
+
+            plan.forEach(task => {
+                if (!task.done && task.date === dateStr && task.time + ':00' === timeStr) {
+                    task.done = true;
+                    speak(task.content);
+                    saveData();
+                    log(`自动播报: ${task.exam_display || (task.exam_grade + task.exam_subject)} - ${taskTypeNames[task.type]}`);
+                    renderTodayTasks();
+                }
+            });
+        }
+
+        // 获取本地日期字符串 YYYY-MM-DD
+        function getLocalDateString(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function renderTodayTasks() {
+            const container = document.getElementById('todayTasks');
+            const dateDisplay = document.getElementById('todayDate');
+            const today = getLocalDateString();
+
+            // 更新日期显示
+            if (dateDisplay) {
+                dateDisplay.textContent = today;
+            }
+
+            const todayPlan = plan.filter(p => p.date === today).sort((a, b) => a.time.localeCompare(b.time));
+
+            if (todayPlan.length === 0) {
+                container.innerHTML = '<p style="color:#999">今日无考试安排</p>';
+                return;
+            }
+
+            let html = '';
+            todayPlan.forEach(task => {
+                let icon = '⏳';
+                let statusClass = 'status-pending';
+
+                if (task.done) {
+                    icon = '✅';
+                    statusClass = 'status-done';
+                }
+
+                const now = new Date();
+                const [h, m] = task.time.split(':').map(Number);
+                const taskTime = h * 60 + m;
+                const nowTime = now.getHours() * 60 + now.getMinutes();
+                const diff = taskTime - nowTime;
+
+                let timeInfo = task.time;
+                if (!task.done && diff > 0) {
+                    // 计算剩余分钟和秒数
+                    const nowSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                    const taskSeconds = h * 3600 + m * 60;
+                    const diffSeconds = taskSeconds - nowSeconds;
+
+                    if (diffSeconds > 0 && diffSeconds < 3600) {
+                        const remainMin = Math.floor(diffSeconds / 60);
+                        const remainSec = diffSeconds % 60;
+                        if (remainMin > 0) {
+                            timeInfo += ` (还有${remainMin}分${remainSec}秒)`;
+                        } else {
+                            timeInfo += ` (还有${remainSec}秒)`;
+                        }
+                    } else if (diffSeconds >= 3600) {
+                        const remainHour = Math.floor(diffSeconds / 3600);
+                        const remainMin = Math.floor((diffSeconds % 3600) / 60);
+                        timeInfo += ` (还有${remainHour}小时${remainMin}分)`;
+                    }
+                }
+
+                html += `<div style="padding:8px 0; border-bottom:1px solid #eee">
+                    <span class="status-badge ${statusClass}">${icon}</span>
+                    <span style="margin-left:8px">${timeInfo} - ${taskTypeNames[task.type]} - ${task.exam_display || (task.exam_grade + task.exam_subject)}</span>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // ==================== 初始化 ====================
+        window.onload = function() {
+            log('系统就绪');
+
+            // 预加载语音列表
+            if (window.speechSynthesis) {
+                window.speechSynthesis.getVoices();
+                // 语音列表可能是异步加载的，监听变化
+                window.speechSynthesis.onvoiceschanged = function() {
+                    window.speechSynthesis.getVoices();
+                };
+            }
+
+            // 尝试从 LocalStorage 加载数据
+            const hasData = loadFromLocalStorage();
+
+            if (hasData && exams.length > 0) {
+                log('已自动加载 ' + exams.length + ' 场考试, ' + plan.length + ' 个广播任务');
+                // 刷新显示
+                renderExamList();
+                renderPlanList();
+            }
+
+            // 自动启动运行
+            autoStartRun();
+
+            // 恢复之前保存的tab（运行控制已移除）
+            const savedTab = localStorage.getItem('examBroadcastCurrentTab');
+            if (savedTab && ['import', 'schedule', 'plan', 'settings'].includes(savedTab)) {
+                showSection(savedTab);
+            }
+        };
+
+        // 页面关闭前保存
+        window.onbeforeunload = function() {
+            saveAll();
+        };
+    </script>
+</body>
+</html>
