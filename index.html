@@ -331,6 +331,14 @@
             font-size: 12px;
             margin-top: 4px;
         }
+
+        /* 自动保存提示动画 */
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-5px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-5px); }
+        }
     </style>
 </head>
 <body>
@@ -456,7 +464,6 @@
                         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:0">
                             <button class="btn btn-warning" onclick="addTempBroadcast()">+ 临时广播</button>
                             <button class="btn btn-outline" onclick="testVoice()">测试语音</button>
-                            <button class="btn btn-success" onclick="saveAll()">保存播报内容</button>
                             <button class="btn btn-primary" onclick="exportPlan()">📄 导出计划</button>
                             <button class="btn btn-outline" onclick="exportData()">💾 导出数据</button>
                             <label class="btn btn-outline" style="cursor:pointer; display:inline-block">
@@ -1370,7 +1377,7 @@
                         </div>
                         <div class="task-content ${expandedClass}">
                             <label>播报内容:</label>
-                            <textarea id="task-${task.id}" rows="4">${task.content}</textarea>
+                            <textarea id="task-${task.id}" rows="4" onblur="autoSaveTask(${task.id})" placeholder="编辑播报内容，离开输入框后自动保存">${task.content}</textarea>
                             <div style="margin-top:12px">
                                 <button class="btn btn-success" onclick="playTask(${task.id})">▶ 立即播报</button>
                                 ${task.type !== 'temp' ? `<button class="btn btn-outline" onclick="resetTask(${task.id})">恢复默认</button>` : ''}
@@ -1457,8 +1464,53 @@
             }
         }
 
+        // 自动保存单个任务（当textarea失去焦点时）
+        function autoSaveTask(taskId) {
+            const textarea = document.getElementById(`task-${taskId}`);
+            if (textarea) {
+                const task = plan.find(p => p.id === taskId);
+                if (task && task.content !== textarea.value) {
+                    task.content = textarea.value;
+                    saveData();
+                    log(`已自动保存: ${task.exam_display || (task.exam_grade + task.exam_subject)} - ${taskTypeNames[task.type]}`);
+                    // 可选：在日志区显示保存成功提示
+                    showSaveNotification(taskId);
+                }
+            }
+        }
+
+        // 显示保存成功的短暂提示
+        function showSaveNotification(taskId) {
+            const textarea = document.getElementById(`task-${taskId}`);
+            if (!textarea) return;
+
+            // 创建提示元素
+            const notification = document.createElement('span');
+            notification.textContent = '✓ 已自动保存';
+            notification.style.cssText = 'color: #4CAF50; font-size: 12px; margin-left: 8px; animation: fadeInOut 2s ease;';
+
+            // 插入到label后面
+            const label = textarea.previousElementSibling;
+            if (label && label.tagName === 'LABEL') {
+                // 检查是否已有提示
+                const existing = label.nextElementSibling;
+                if (existing && existing.classList.contains('save-notification')) {
+                    existing.remove();
+                }
+                notification.className = 'save-notification';
+                label.parentNode.insertBefore(notification, textarea);
+
+                // 2秒后移除提示
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 2000);
+            }
+        }
+
         function saveAll() {
-            // 保存所有编辑过的内容
+            // 保存所有编辑过的内容（兼容旧代码）
             plan.forEach(task => {
                 const textarea = document.getElementById(`task-${task.id}`);
                 if (textarea) {
@@ -1466,7 +1518,6 @@
                 }
             });
             saveData();
-            alert('已保存所有修改');
             log('保存所有修改');
         }
 
