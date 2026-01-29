@@ -770,8 +770,8 @@
                 if (todayTasksInterval) clearInterval(todayTasksInterval);
                 todayTasksInterval = setInterval(() => {
                     renderTodayTasks();
-                    // 定时刷新时不自动滚动，保持用户当前滚动位置
-                    renderPlanList(false);
+                    // 只更新倒计时文本，不重新渲染整个列表（避免折叠已展开的任务）
+                    updatePlanCountdown();
                 }, 1000);
             } else {
                 // 离开广播计划页面时停止倒计时更新
@@ -1269,7 +1269,7 @@
                         <div class="task-header" onclick="toggleTask(this)" style="${headerStyle}">
                             <span>
                                 <strong>${task.time}</strong> - ${taskTypeNames[task.type]} - ${task.exam_display || (task.exam_grade + task.exam_subject)}
-                                ${countdownText ? `<span style="color:#1976D2; margin-left:8px; font-size:12px;">⏱️ ${countdownText}</span>` : ''}
+                                <span id="countdown-${task.id}" style="color:#1976D2; margin-left:8px; font-size:12px;">${countdownText ? '⏱️ ' + countdownText : ''}</span>
                             </span>
                             <div style="display:flex;align-items:center;gap:8px">
                                 <button class="btn btn-success" style="padding:4px 12px;font-size:12px;margin:0" onclick="event.stopPropagation();playTaskDirect(${task.id})" title="立即播报">▶ 播放</button>
@@ -1634,6 +1634,45 @@
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        }
+
+        // 只更新广播计划中的倒计时文本（不重新渲染整个列表，避免折叠）
+        function updatePlanCountdown() {
+            const now = new Date();
+            const today = getLocalDateString();
+            const nowSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+            // 找到所有倒计时元素并更新
+            plan.forEach(task => {
+                const countdownEl = document.getElementById(`countdown-${task.id}`);
+                if (!countdownEl) return;
+
+                const [h, m] = task.time.split(':').map(Number);
+                const taskSeconds = h * 3600 + m * 60;
+
+                // 计算倒计时（仅今天未过期且未执行的任务）
+                if (task.date === today && !task.done && taskSeconds > nowSeconds) {
+                    const diffSeconds = taskSeconds - nowSeconds;
+                    const remainHour = Math.floor(diffSeconds / 3600);
+                    const remainMin = Math.floor((diffSeconds % 3600) / 60);
+                    const remainSec = diffSeconds % 60;
+
+                    let countdownText = '';
+                    if (diffSeconds < 3600) {
+                        if (remainMin > 0) {
+                            countdownText = `还有${remainMin}分${remainSec}秒`;
+                        } else {
+                            countdownText = `还有${remainSec}秒`;
+                        }
+                    } else {
+                        countdownText = `还有${remainHour}小时${remainMin}分`;
+                    }
+                    countdownEl.textContent = countdownText;
+                } else {
+                    // 已过期或已执行，清空倒计时
+                    countdownEl.textContent = '';
+                }
+            });
         }
 
         function renderTodayTasks() {
