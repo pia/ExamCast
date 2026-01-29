@@ -534,6 +534,8 @@
         let todayTasksInterval = null; // 今日任务倒计时更新定时器
         let currentImage = null;
         let recognizedExams = [];
+        let hasAutoScrolled = false; // 是否已经自动滚动过（防止每次刷新都滚动）
+        let expandedTaskId = null; // 当前展开的任务ID（用于保持展开状态）
 
         // 默认广播模板 - 根据Word文档规范
         const templates = {
@@ -758,13 +760,18 @@
 
             if (name === 'schedule') renderExamList();
             if (name === 'plan') {
-                renderPlanList();
+                // 重置自动滚动标志（每次进入广播计划页面时允许滚动一次）
+                hasAutoScrolled = false;
+                expandedTaskId = null;
+                // 首次渲染时允许自动滚动
+                renderPlanList(true);
                 renderTodayTasks();
                 // 启动倒计时自动更新（每秒更新一次）
                 if (todayTasksInterval) clearInterval(todayTasksInterval);
                 todayTasksInterval = setInterval(() => {
                     renderTodayTasks();
-                    renderPlanList();
+                    // 定时刷新时不自动滚动，保持用户当前滚动位置
+                    renderPlanList(false);
                 }, 1000);
             } else {
                 // 离开广播计划页面时停止倒计时更新
@@ -1160,11 +1167,21 @@
             };
         }
 
-        function renderPlanList() {
+        function renderPlanList(shouldAutoScroll = false) {
             const container = document.getElementById('planList');
             if (plan.length === 0) {
                 container.innerHTML = '<p style="color:#999">暂无广播计划，请先生成</p>';
                 return;
+            }
+
+            // 记录当前展开的任务ID（用于重新渲染后保持展开状态）
+            const currentExpanded = document.querySelector('.task-content.expanded');
+            if (currentExpanded) {
+                const textarea = currentExpanded.querySelector('textarea');
+                if (textarea) {
+                    const match = textarea.id.match(/task-(\d+)/);
+                    if (match) expandedTaskId = parseFloat(match[1]);
+                }
             }
 
             // 按日期分组
@@ -1243,8 +1260,10 @@
                     const statusClass = task.done ? 'status-done' : 'status-pending';
                     const statusText = task.done ? '已执行' : (isExpired ? '已过期' : '待执行');
 
-                    // 任务项ID用于自动滚动
+                    // 任务项ID用于自动滚动（仅下一个任务需要ID）
                     const taskIdAttr = task.id === nextTaskId ? `id="nextTask"` : '';
+                    // 保持展开状态
+                    const expandedClass = task.id === expandedTaskId ? 'expanded' : '';
 
                     html += `<div class="${taskClass}" ${taskIdAttr} style="${itemStyle}">
                         <div class="task-header" onclick="toggleTask(this)" style="${headerStyle}">
@@ -1257,7 +1276,7 @@
                                 <span class="status-badge ${statusClass}">${statusText}</span>
                             </div>
                         </div>
-                        <div class="task-content">
+                        <div class="task-content ${expandedClass}">
                             <label>播报内容:</label>
                             <textarea id="task-${task.id}" rows="4">${task.content}</textarea>
                             <div style="margin-top:12px">
@@ -1271,19 +1290,37 @@
             });
             container.innerHTML = html;
 
-            // 自动滚动到下一个任务
-            if (nextTaskId) {
+            // 只在需要时自动滚动到下一个任务（首次进入页面时）
+            if (shouldAutoScroll && nextTaskId && !hasAutoScrolled) {
                 setTimeout(() => {
                     const nextTaskEl = document.getElementById('nextTask');
                     if (nextTaskEl) {
                         nextTaskEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        hasAutoScrolled = true;
                     }
                 }, 100);
             }
         }
 
         function toggleTask(header) {
-            header.nextElementSibling.classList.toggle('expanded');
+            const content = header.nextElementSibling;
+            const isExpanded = content.classList.contains('expanded');
+
+            // 切换展开状态
+            content.classList.toggle('expanded');
+
+            // 记录展开的任务ID（用于保持展开状态）
+            if (!isExpanded) {
+                // 展开时，获取任务ID
+                const textarea = content.querySelector('textarea');
+                if (textarea) {
+                    const match = textarea.id.match(/task-(\d+)/);
+                    if (match) expandedTaskId = parseFloat(match[1]);
+                }
+            } else {
+                // 折叠时，清除记录
+                expandedTaskId = null;
+            }
         }
 
         function playTask(id) {
